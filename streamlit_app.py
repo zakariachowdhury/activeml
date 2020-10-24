@@ -28,89 +28,86 @@ def main():
 
     st.title(APP_TITLE)
 
-    url = st.text_input('Data URL (csv):', SAMPLE_DATA_URL)
-    df = load_data(url)
-
-    '**Shape:**'
-    df.shape
-
-    '**Head:**'
-    df[:5]
-
-    '**Tail:**'
-    df[-5:]
-
-    '**Info:**'
-    buffer = io.StringIO()
-    df.info(buf=buffer)
-    st.text(buffer.getvalue())
-
-    '**Data Types:**'
-    dtypes = df.dtypes.rename('Total')
-    dtypes
-
-    '**Describe:**'
-    desc = df.describe()
-    desc
-
-    '**Missing Values:**'
-    isnull = df.isnull().sum().rename('Total')
-    isnull
-
-
-    categorical_columns = df.select_dtypes(include=['object']).columns.tolist()
-    nummeric_columns = df.select_dtypes(include=np.number).columns.tolist()
-
-    '**Categorical Columns:**'
-    for col in categorical_columns:
-        count = df[col].value_counts()
-        count
-
-        st_plot(sns.countplot(df[col]))
-
-    '**Numerical Columns:**'
-    for col in nummeric_columns:
-        desc = df[col].describe()
-        desc
-
-        st_plot(sns.distplot(df[col]))
-
-    '**Skew:**'
-    skew = df.skew()
-    skew
+    with st.beta_expander("Data"):
+        url = st.text_input('Data URL (csv):', SAMPLE_DATA_URL)
     
-    '**Covariance:**'
-    cov = df.cov()
-    cov
-    st_plot(sns.heatmap(cov, annot=True))
+    if len(url):
+        df = load_data(url)
 
+        with st.beta_expander("Basic Stats"):
+            '*Shape:*'
+            df.shape
 
-    '**Correlation:**'
-    corr = df.corr()
-    corr
-    st_plot(sns.heatmap(corr, annot=True))
+            '*Head:*'
+            df[:5]
 
-    '**Categorical vs Numerical:**'
-    for cat_col in categorical_columns:
-        for num_col in nummeric_columns:
-            st_plot(sns.swarmplot(x=df[cat_col], y=df[num_col]))
+            '*Tail:*'
+            df[-5:]
 
-    for cat_col in categorical_columns:
-        for num_col in nummeric_columns:
-            st_plot(sns.boxplot(x=df[cat_col], y=df[num_col]))
+            '*Info:*'
+            buffer = io.StringIO()
+            df.info(buf=buffer)
+            st.text(buffer.getvalue())
 
-    #'**Numerical vs Numerical:**'
-    # for x in nummeric_columns:
-    #     for y in nummeric_columns:
-    #         if x != y:
-    #             st_plot(sns.scatterplot(df[x], df[y]))
+            '*Data Types:*'
+            dtypes = df.dtypes.rename('Total')
+            dtypes
 
-    '**Multivariate Analysis:**'
-    for x in nummeric_columns:
-        for y in nummeric_columns:
-            if x != y:
-                for z in categorical_columns:
-                    st_plot(sns.scatterplot(df[x], df[y], df[z]))
+            '*Describe:*'
+            desc = df.describe()
+            desc
+
+            '*Missing Values:*'
+            isnull = df.isnull().sum().rename('Total')
+            isnull
+
+            '*Skew:*'
+            skew = df.skew()
+            skew
+            
+            '*Covariance:*'
+            cov = df.cov()
+            cov
+            st_plot(sns.heatmap(cov, annot=True))
+
+            '*Correlation:*'
+            corr = df.corr()
+            corr
+            st_plot(sns.heatmap(corr, annot=True))
+        
+        with st.beta_expander('Categorical Columns:'):
+            categorical_columns = df.select_dtypes(include=['object']).columns.tolist()
+            categorical_columns
+            for col in categorical_columns:
+                count = df[col].value_counts()
+                count
+
+                st_plot(sns.countplot(df[col]))
+
+        with st.beta_expander('Numerical Columns:'):
+            nummeric_columns = df.select_dtypes(include=np.number).columns.tolist()
+            nummeric_columns
+            for col in nummeric_columns:
+                desc = df[col].describe()
+                desc
+
+                st_plot(sns.distplot(df[col]))
+
+        with st.beta_expander('Categorical vs Numerical:'):
+            for cat_col in categorical_columns:
+                for num_col in nummeric_columns:
+                    st_plot(sns.swarmplot(x=df[cat_col], y=df[num_col]))
+
+            for cat_col in categorical_columns:
+                for num_col in nummeric_columns:
+                    st_plot(sns.boxplot(x=df[cat_col], y=df[num_col]))
+
+        with st.beta_expander('Multivariate Analysis:'):
+            for x in nummeric_columns:
+                for y in nummeric_columns:
+                    if x != y:
+                        for z in categorical_columns:
+                            st_plot(sns.scatterplot(df[x], df[y], df[z]))
 
     
 
