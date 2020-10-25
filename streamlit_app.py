@@ -5,6 +5,7 @@ import numpy as np
 import io
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pydeck as pdk
 
 APP_TITLE = "Exploratory Data Analysis"
 SAMPLE_DATA_URL = 'https://gist.githubusercontent.com/curran/a08a1080b88344b0c8a7/raw/0e7a9b0a5d22642a06d3d5b9bcbad9890c8ee534/iris.csv'
@@ -14,17 +15,19 @@ GROUP_CATEGORICAL = 'Categorical Analysis'
 GROUP_NUMERICAL = 'Numerical Analysis'
 GROUP_BIVARIATE = 'Bivariate Analysis'
 GROUP_MULTIVARIATE = 'Multivariate Analysis'
+GROUP_MAP = 'Map View'
 
-groups = [
+ANALYSIS_GROUP = [
     GROUP_BASIC,
     GROUP_CATEGORICAL,
     GROUP_NUMERICAL,
     GROUP_BIVARIATE,
-    GROUP_MULTIVARIATE
+    GROUP_MULTIVARIATE,
+    GROUP_MAP
 ]
 
-demo_datasets = {
-    'None': {
+DEMO_DATASETS = {
+    '': {
         'url': '',
         'nrows': 100,
         'sep': ','
@@ -45,6 +48,8 @@ demo_datasets = {
         'sep': ','
     }
 }
+
+MAPBOX_STYLES = ['light-v10', 'dark-v10', 'streets-v11', 'satellite-v9', 'satellite-streets-v11']
 
 @st.cache
 def load_data(url, nrows=None, sep=','):
@@ -73,9 +78,32 @@ def st_plot(plot):
 def section_title(text):
     st.markdown(f'*{text}*:')
 
+def view_map(data, lat_col, lon_col, lat, lon, zoom, style_name):
+    st.write(pdk.Deck(
+        map_style="mapbox://styles/mapbox/"+style_name,
+        initial_view_state={
+            "latitude": lat,
+            "longitude": lon,
+            "zoom": zoom,
+            "pitch": 50,
+        },
+        layers=[
+            pdk.Layer(
+                "HexagonLayer",
+                data=data,
+                get_position=[lon_col, lat_col],
+                radius=100,
+                elevation_scale=4,
+                elevation_range=[0, 1000],
+                pickable=True,
+                extruded=True,
+            ),
+        ]
+    ))
+
 def main():
     df = None
-    selected_groups = []
+    selected_analysis_group = []
     categorical_columns = None
     nummeric_columns = None
     date_columns = None
@@ -89,11 +117,12 @@ def main():
     st.title(APP_TITLE)
     st.text('Enter your dataset csv url below to get started.')
 
+
     with st.beta_expander("Load Data", True):
-        dataset_name = st.selectbox('Demo Datasets:', list(demo_datasets.keys()))
-        url = demo_datasets[dataset_name]['url']
-        nrows = demo_datasets[dataset_name]['nrows']
-        sep = demo_datasets[dataset_name]['sep']
+        dataset_name = st.selectbox('Demo Datasets:', list(DEMO_DATASETS.keys()))
+        url = DEMO_DATASETS[dataset_name]['url']
+        nrows = DEMO_DATASETS[dataset_name]['nrows']
+        sep = DEMO_DATASETS[dataset_name]['sep']
 
         col1, col2 = st.beta_columns(2)
         with col1:
@@ -147,12 +176,12 @@ def main():
 
             view_data(df, "process")
 
-        with st.sidebar.beta_expander("Groups", True):
-            for group in groups:
+        with st.sidebar.beta_expander("Analysis", True):
+            for group in ANALYSIS_GROUP:
                 if st.checkbox(group):
-                    selected_groups.append(group)
+                    selected_analysis_group.append(group)
 
-        if GROUP_BASIC in selected_groups:
+        if GROUP_BASIC in selected_analysis_group:
             with st.beta_expander(GROUP_BASIC, True):
                 section_title('Info')
                 buffer = io.StringIO()
@@ -188,7 +217,7 @@ def main():
                 if len(corr):
                     st_plot(sns.heatmap(corr, annot=True))
         
-        if GROUP_CATEGORICAL in selected_groups:
+        if GROUP_CATEGORICAL in selected_analysis_group:
             with st.beta_expander(GROUP_CATEGORICAL, True):
                 for col in categorical_columns:
                     section_title(col)
@@ -200,7 +229,7 @@ def main():
                     with col2:
                         st_plot(sns.countplot(df[col]))
 
-        if GROUP_NUMERICAL in selected_groups:
+        if GROUP_NUMERICAL in selected_analysis_group:
             with st.beta_expander(GROUP_NUMERICAL, True):
                 for col in nummeric_columns:
                     section_title(col)
@@ -214,7 +243,7 @@ def main():
                         except Exception as e:
                             st.error(e)
 
-        if GROUP_BIVARIATE in selected_groups:
+        if GROUP_BIVARIATE in selected_analysis_group:
             with st.beta_expander(GROUP_BIVARIATE, True):
                 for cat_col in categorical_columns:
                     for num_col in nummeric_columns:
@@ -232,7 +261,7 @@ def main():
                         if cat_col != num_col:
                             st_plot(sns.boxplot(x=df[cat_col], y=df[num_col]))
 
-        if GROUP_MULTIVARIATE in selected_groups:
+        if GROUP_MULTIVARIATE in selected_analysis_group:
             with st.beta_expander(GROUP_MULTIVARIATE, True):
                 for x in nummeric_columns:
                     for y in nummeric_columns:
@@ -240,6 +269,21 @@ def main():
                             for z in categorical_columns:
                                 st_plot(sns.scatterplot(df[x], df[y], df[z]))
 
-    
+        if GROUP_MAP in selected_analysis_group:
+            with st.beta_expander(GROUP_MAP, True):
+                lat_col = None
+                lon_col = None
+
+                col1, col2, col3 = st.beta_columns(3)
+                with col1:
+                    lat_col = st.selectbox('Latitude Column', [None] + nummeric_columns)
+                with col2:
+                    lon_col = st.selectbox('Longitude Column', [None] + nummeric_columns)
+                with col3:
+                    map_style = st.selectbox('Style', MAPBOX_STYLES)
+
+                if lat_col is not None and lon_col is not None:
+                    midpoint = (np.average(df[lat_col]), np.average(df[lon_col]))
+                    view_map(df, lat_col, lon_col, midpoint[0], midpoint[1], 11, map_style)
 
 main()
