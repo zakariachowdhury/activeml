@@ -23,6 +23,29 @@ groups = [
     GROUP_MULTIVARIATE
 ]
 
+demo_datasets = {
+    'None': {
+        'url': '',
+        'nrows': 100,
+        'sep': ','
+    },
+    'Iris': {
+        'url': 'https://gist.githubusercontent.com/curran/a08a1080b88344b0c8a7/raw/0e7a9b0a5d22642a06d3d5b9bcbad9890c8ee534/iris.csv',
+        'nrows': 150,
+        'sep': ','
+    },
+    'Uber': {
+        'url': 'https://s3-us-west-2.amazonaws.com/streamlit-demo-data/uber-raw-data-sep14.csv.gz',
+        'nrows': 10000,
+        'sep': ','
+    },
+    'US Sate Population': {
+        'url': 'https://raw.githubusercontent.com/jakevdp/data-USstates/master/state-population.csv',
+        'nrows': 3000,
+        'sep': ','
+    }
+}
+
 @st.cache
 def load_data(url, nrows=None, sep=','):
     data = pd.read_csv(url, nrows=nrows, sep=sep)
@@ -30,8 +53,22 @@ def load_data(url, nrows=None, sep=','):
     data.rename(lowercase, axis='columns', inplace=True)
     return data
 
+def view_data(df, checkbox_key=None):
+    if df is not None:
+        section_title('Shape')
+        df.shape
+
+        section_title('Head')
+        df[:5]
+
+        if st.checkbox("View All", key=checkbox_key):
+            df
+
 def st_plot(plot):
-    st.pyplot(plot.get_figure(), clear_figure=True)
+    try:
+        st.pyplot(plot.get_figure(), clear_figure=True)
+    except Exception as e:
+        st.error(e)
 
 def section_title(text):
     st.markdown(f'*{text}*:')
@@ -41,6 +78,7 @@ def main():
     selected_groups = []
     categorical_columns = None
     nummeric_columns = None
+    date_columns = None
 
     st.beta_set_page_config(
         page_title=APP_TITLE,
@@ -51,15 +89,20 @@ def main():
     st.title(APP_TITLE)
     st.text('Enter your dataset csv url below to get started.')
 
-    with st.beta_expander("Data", True):
+    with st.beta_expander("Load Data", True):
+        dataset_name = st.selectbox('Demo Datasets:', list(demo_datasets.keys()))
+        url = demo_datasets[dataset_name]['url']
+        nrows = demo_datasets[dataset_name]['nrows']
+        sep = demo_datasets[dataset_name]['sep']
+
         col1, col2 = st.beta_columns(2)
         with col1:
-            nrows = st.number_input('Number of Rows:', value=100)
+            nrows = st.number_input('Number of Rows:', value=nrows)
         with col2:
-            sep = st.text_input('Sepetator:', ',')
+            sep = st.text_input('Sepetator:', sep)
             sep = sep if len(sep) else ','
         nrows = nrows if nrows else None
-        url = st.text_input('Dataset URL (csv):', SAMPLE_DATA_URL)
+        url = st.text_input('Dataset URL (csv):', url)
 
         if len(url):
             try:
@@ -67,32 +110,43 @@ def main():
             except Exception as e:
                 st.error(e)
                 st.stop()
-
+            
+            view_data(df)
+    
+    if df is not None and len(df):
+        with st.beta_expander("Process Data"):
             columns = st.multiselect('Columns:', list(df.columns), list(df.columns))
             df = df[columns]
             
             cat_col = df.select_dtypes(include=['object']).columns.tolist()
             num_col = df.select_dtypes(include=np.number).columns.tolist()
-
-            categorical_columns = st.multiselect('Categorical Columns:', columns, cat_col)
-            nummeric_columns = st.multiselect('Numerical Columns:', num_col, num_col)
-            date_columns = st.multiselect('Date Columns:', categorical_columns)
+            
+            date_columns = st.multiselect('Date Columns:', cat_col)
             for col in date_columns:
                 try:
                     df[col] = pd.to_datetime(df[col])
                 except Exception as e:
-                    st.error(f'Column \'{col}\' cannot be converted to datetime')
+                    st.error(f'Column \'{col}\' cannot be converted to date/time')
 
-            section_title('Shape')
-            df.shape
+            if cat_col is not None and date_columns is not None:
+                cat_col = list(set(cat_col) - set(date_columns))
 
-            section_title('Head')
-            df[:5]
+            categorical_columns = st.multiselect('Categorical Columns:', columns, cat_col)
+            nummeric_columns = st.multiselect('Numerical Columns:', num_col, num_col)
 
-            if st.checkbox("View All"):
-                df
-    
-    if df is not None and len(df):
+            section_title('Operations')
+
+            if st.checkbox('Drop Null Values'):
+                df.dropna(inplace=True)
+
+            if st.checkbox('Drop Duplicates'):
+                df.drop_duplicates(inplace=True)
+
+            if st.checkbox('Reset Index'):
+                df.reset_index(drop=True, inplace=True)
+
+            view_data(df, "process")
+
         with st.sidebar.beta_expander("Groups", True):
             for group in groups:
                 if st.checkbox(group):
@@ -155,7 +209,10 @@ def main():
                         desc = df[col].describe()
                         desc
                     with col2:
-                        st_plot(sns.distplot(df[col]))
+                        try:
+                            st_plot(sns.distplot(df[col]))
+                        except Exception as e:
+                            st.error(e)
 
         if GROUP_BIVARIATE in selected_groups:
             with st.beta_expander(GROUP_BIVARIATE, True):
