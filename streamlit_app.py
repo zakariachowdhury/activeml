@@ -8,7 +8,6 @@ import seaborn as sns
 import pydeck as pdk
 
 APP_TITLE = "Exploratory Data Analysis"
-SAMPLE_DATA_URL = 'https://gist.githubusercontent.com/curran/a08a1080b88344b0c8a7/raw/0e7a9b0a5d22642a06d3d5b9bcbad9890c8ee534/iris.csv'
 
 GROUP_BASIC = 'Basic Analysis'
 GROUP_CATEGORICAL = 'Categorical Analysis'
@@ -26,11 +25,21 @@ ANALYSIS_GROUP = [
     GROUP_MAP
 ]
 
+DATA_SOURCE_FILE = "File"
+DATA_SOURCE_URL = "URL"
+DATA_SOURCE_DEMO = "Demo"
+DATA_SOURCES = [
+    DATA_SOURCE_FILE,
+    DATA_SOURCE_URL,
+    DATA_SOURCE_DEMO
+]
+
+DATA_MAX_N_ROWS = 100000
+DATA_CSV_SEPERATORS = [',', ';', ':', '|', r'\t']
+
 DEMO_DATASETS = {
     '': {
-        'url': '',
-        'nrows': 100,
-        'sep': ','
+        'url': ''
     },
     'Iris': {
         'url': 'https://gist.githubusercontent.com/curran/a08a1080b88344b0c8a7/raw/0e7a9b0a5d22642a06d3d5b9bcbad9890c8ee534/iris.csv',
@@ -52,8 +61,8 @@ DEMO_DATASETS = {
 MAPBOX_STYLES = ['light-v10', 'dark-v10', 'streets-v11', 'satellite-v9', 'satellite-streets-v11']
 
 @st.cache
-def load_data(url, nrows=None, sep=','):
-    data = pd.read_csv(url, nrows=nrows, sep=sep)
+def load_data(file, nrows=None, sep=','):
+    data = pd.read_csv(file, nrows=nrows, sep=sep)
     lowercase = lambda x: str(x).lower()
     data.rename(lowercase, axis='columns', inplace=True)
     return data
@@ -115,32 +124,44 @@ def main():
         initial_sidebar_state="auto")
 
     st.title(APP_TITLE)
-    st.text('Enter your dataset csv url below to get started.')
-
 
     with st.beta_expander("Load Data", True):
-        dataset_name = st.selectbox('Demo Datasets:', list(DEMO_DATASETS.keys()))
-        url = DEMO_DATASETS[dataset_name]['url']
-        nrows = DEMO_DATASETS[dataset_name]['nrows']
-        sep = DEMO_DATASETS[dataset_name]['sep']
+        dataset_source = st.selectbox('Data Source:', DATA_SOURCES)
+        
+        file = None
+        nrows = DATA_MAX_N_ROWS
 
-        col1, col2 = st.beta_columns(2)
-        with col1:
-            nrows = st.number_input('Number of Rows:', value=nrows)
-        with col2:
-            sep = st.text_input('Sepetator:', sep)
-            sep = sep if len(sep) else ','
-        nrows = nrows if nrows else None
-        url = st.text_input('Dataset URL (csv):', url)
+        if dataset_source == DATA_SOURCE_DEMO:
+            dataset_name = st.selectbox('Demo Dataset:', list(DEMO_DATASETS.keys()))
+            if len(dataset_name):
+                file = DEMO_DATASETS[dataset_name]['url']
+                nrows = DEMO_DATASETS[dataset_name]['nrows']
+                sep = DEMO_DATASETS[dataset_name]['sep']
 
-        if len(url):
+        if dataset_source != DATA_SOURCE_DEMO:
+            col1, col2 = st.beta_columns(2)
+            with col1:
+                nrows = st.number_input('Number of Rows:', value=nrows)
+            with col2:
+                sep = st.selectbox('Sepetator:', DATA_CSV_SEPERATORS)
+                sep = sep if len(sep) else ','
+            nrows = nrows if nrows else None
+
+        if dataset_source == DATA_SOURCE_FILE:
+            file = st.file_uploader("Upload File:", type=['csv', 'tsv', 'txt'])
+
+        if dataset_source == DATA_SOURCE_URL:
+            file = st.text_input('Dataset URL (csv):')
+            if len(file) == 0:
+                file = None
+
+        if file is not None:
             try:
-                df = load_data(url, nrows, sep)
+                df = load_data(file, nrows, sep)
+                view_data(df, 'file')
             except Exception as e:
                 st.error(e)
                 st.stop()
-            
-            view_data(df)
     
     if df is not None and len(df):
         with st.beta_expander("Process Data"):
