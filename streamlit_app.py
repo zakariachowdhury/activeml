@@ -7,8 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 import sys
-sys.path.insert(0, 'analysis')
-sys.path = list(set(sys.path))
+sys.path = list(set(['analysis', 'utils'] + sys.path))
 
 import mapview
 

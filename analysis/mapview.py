@@ -1,7 +1,6 @@
 import streamlit as st
 import numpy as np
-
-from utils import maputil
+import maputil
 
 LABEL_LATITUDE_COLUMN = 'Latitude Column'
 LABEL_LONGITUDE_COLUMN = 'Longitude Column'
