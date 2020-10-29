@@ -5,7 +5,13 @@ import numpy as np
 import io
 import matplotlib.pyplot as plt
 import seaborn as sns
-import pydeck as pdk
+
+import sys
+sys.path.insert(0, 'analysis')
+sys.path = list(set(sys.path))
+
+import mapview
+
 
 APP_TITLE = "Exploratory Data Analysis"
 
@@ -25,7 +31,7 @@ ANALYSIS_GROUP = [
     GROUP_MAP
 ]
 
-DATA_SOURCE_FILE = "File"
+DATA_SOURCE_FILE = "Local"
 DATA_SOURCE_URL = "URL"
 DATA_SOURCE_DEMO = "Demo"
 DATA_SOURCES = [
@@ -35,7 +41,7 @@ DATA_SOURCES = [
 ]
 
 DATA_MAX_N_ROWS = 100000
-DATA_CSV_SEPERATORS = [',', ';', ':', '|', r'\t']
+DATA_CSV_SEPERATORS = [',', ';', '', '|', r'\t']
 
 DEMO_DATASETS = {
     '': {
@@ -58,7 +64,7 @@ DEMO_DATASETS = {
     }
 }
 
-MAPBOX_STYLES = ['light-v10', 'dark-v10', 'streets-v11', 'satellite-v9', 'satellite-streets-v11']
+
 
 @st.cache
 def load_data(file, nrows=None, sep=','):
@@ -85,30 +91,9 @@ def st_plot(plot):
         st.error(e)
 
 def section_title(text):
-    st.markdown(f'*{text}*:')
+    st.markdown(f'*{text}*')
 
-def view_map(data, lat_col, lon_col, lat, lon, zoom, style_name):
-    st.write(pdk.Deck(
-        map_style="mapbox://styles/mapbox/"+style_name,
-        initial_view_state={
-            "latitude": lat,
-            "longitude": lon,
-            "zoom": zoom,
-            "pitch": 50,
-        },
-        layers=[
-            pdk.Layer(
-                "HexagonLayer",
-                data=data,
-                get_position=[lon_col, lat_col],
-                radius=100,
-                elevation_scale=4,
-                elevation_range=[0, 1000],
-                pickable=True,
-                extruded=True,
-            ),
-        ]
-    ))
+
 
 def main():
     df = None
@@ -126,13 +111,13 @@ def main():
     st.title(APP_TITLE)
 
     with st.beta_expander("Load Data", True):
-        dataset_source = st.selectbox('Data Source:', DATA_SOURCES)
+        dataset_source = st.selectbox('Data Source', DATA_SOURCES)
         
         file = None
         nrows = DATA_MAX_N_ROWS
 
         if dataset_source == DATA_SOURCE_DEMO:
-            dataset_name = st.selectbox('Demo Dataset:', list(DEMO_DATASETS.keys()))
+            dataset_name = st.selectbox('Demo Dataset', list(DEMO_DATASETS.keys()))
             if len(dataset_name):
                 file = DEMO_DATASETS[dataset_name]['url']
                 nrows = DEMO_DATASETS[dataset_name]['nrows']
@@ -141,17 +126,17 @@ def main():
         if dataset_source != DATA_SOURCE_DEMO:
             col1, col2 = st.beta_columns(2)
             with col1:
-                nrows = st.number_input('Number of Rows:', value=nrows)
+                nrows = st.number_input('Number of Rows', value=nrows)
             with col2:
-                sep = st.selectbox('Sepetator:', DATA_CSV_SEPERATORS)
+                sep = st.selectbox('Sepetator', DATA_CSV_SEPERATORS)
                 sep = sep if len(sep) else ','
             nrows = nrows if nrows else None
 
         if dataset_source == DATA_SOURCE_FILE:
-            file = st.file_uploader("Upload File:", type=['csv', 'tsv', 'txt'])
+            file = st.file_uploader('Upload File', type=['csv', 'tsv', 'txt'])
 
         if dataset_source == DATA_SOURCE_URL:
-            file = st.text_input('Dataset URL (csv):')
+            file = st.text_input('Dataset URL (csv)')
             if len(file) == 0:
                 file = None
 
@@ -165,13 +150,13 @@ def main():
     
     if df is not None and len(df):
         with st.beta_expander("Process Data"):
-            columns = st.multiselect('Columns:', list(df.columns), list(df.columns))
+            columns = st.multiselect('Columns', list(df.columns), list(df.columns))
             df = df[columns]
             
             cat_col = df.select_dtypes(include=['object']).columns.tolist()
             num_col = df.select_dtypes(include=np.number).columns.tolist()
             
-            date_columns = st.multiselect('Date Columns:', cat_col)
+            date_columns = st.multiselect('Date Columns', cat_col)
             for col in date_columns:
                 try:
                     df[col] = pd.to_datetime(df[col])
@@ -181,8 +166,8 @@ def main():
             if cat_col is not None and date_columns is not None:
                 cat_col = list(set(cat_col) - set(date_columns))
 
-            categorical_columns = st.multiselect('Categorical Columns:', columns, cat_col)
-            nummeric_columns = st.multiselect('Numerical Columns:', num_col, num_col)
+            categorical_columns = st.multiselect('Categorical Columns', columns, cat_col)
+            nummeric_columns = st.multiselect('Numerical Columns', num_col, num_col)
 
             section_title('Operations')
 
@@ -292,19 +277,6 @@ def main():
 
         if GROUP_MAP in selected_analysis_group:
             with st.beta_expander(GROUP_MAP, True):
-                lat_col = None
-                lon_col = None
-
-                col1, col2, col3 = st.beta_columns(3)
-                with col1:
-                    lat_col = st.selectbox('Latitude Column', [None] + nummeric_columns)
-                with col2:
-                    lon_col = st.selectbox('Longitude Column', [None] + nummeric_columns)
-                with col3:
-                    map_style = st.selectbox('Style', MAPBOX_STYLES)
-
-                if lat_col is not None and lon_col is not None:
-                    midpoint = (np.average(df[lat_col]), np.average(df[lon_col]))
-                    view_map(df, lat_col, lon_col, midpoint[0], midpoint[1], 11, map_style)
+                mapview.generate_map_view(df, nummeric_columns)
 
 main()
