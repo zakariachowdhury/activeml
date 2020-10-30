@@ -10,6 +10,7 @@ import sys
 sys.path = list(set(['analysis', 'utils'] + sys.path))
 
 import mapview
+import customplot
 
 
 APP_TITLE = "Exploratory Data Analysis"
@@ -20,6 +21,7 @@ GROUP_NUMERICAL = 'Numerical Analysis'
 GROUP_BIVARIATE = 'Bivariate Analysis'
 GROUP_MULTIVARIATE = 'Multivariate Analysis'
 GROUP_MAP = 'Map View'
+GROUP_CUSTOM_PLOT = 'Custom Plot'
 
 ANALYSIS_GROUP = [
     GROUP_BASIC,
@@ -27,7 +29,8 @@ ANALYSIS_GROUP = [
     GROUP_NUMERICAL,
     GROUP_BIVARIATE,
     GROUP_MULTIVARIATE,
-    GROUP_MAP
+    GROUP_MAP,
+    GROUP_CUSTOM_PLOT
 ]
 
 DATA_SOURCE_FILE = "Local"
@@ -277,5 +280,9 @@ def main():
         if GROUP_MAP in selected_analysis_group:
             with st.beta_expander(GROUP_MAP, True):
                 mapview.generate_map_view(df, nummeric_columns)
+
+        if GROUP_CUSTOM_PLOT in selected_analysis_group:
+            with st.beta_expander(GROUP_CUSTOM_PLOT, True):
+                customplot.generate_plot_view(df)
 
 main()
