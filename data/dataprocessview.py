@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+from sklearn.preprocessing import LabelEncoder
 
 import viewutil
 
@@ -21,7 +21,7 @@ LABEL_ENCODER_COLUMNS = 'Encode Columns'
 ENCODER_TYPE_ONE_HOT = 'One Hot Encoder'
 ENCODER_TYPE_LABEL = 'Label Encoder'
 ENCODERS_TYPES = [
-    #ENCODER_TYPE_ONE_HOT,
+    ENCODER_TYPE_ONE_HOT,
     ENCODER_TYPE_LABEL
 ]
 
@@ -63,6 +63,9 @@ def generate_date_process_view(df):
         if len(encode_columns):
             if encoder_type == ENCODER_TYPE_LABEL:
                 df.loc[:,encode_columns] = df.loc[:,encode_columns].apply(LabelEncoder().fit_transform)
+            elif encoder_type == ENCODER_TYPE_ONE_HOT:
+                df = pd.get_dummies(df, columns=encode_columns, prefix=encode_columns )
+
 
     viewutil.view_data(df, "process")
 
