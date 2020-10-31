@@ -7,11 +7,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 import sys
-sys.path = list(set(['eda', 'ml', 'utils'] + sys.path))
+sys.path = list(set(['eda', 'data', 'ml', 'utils'] + sys.path))
 
+import dataprocessview
 import edamapview
 import edacustomplot
-import mltrain
+import mlsupervised
+import viewutil
 
 APP_TITLE = "Active ML"
 APP_ICON = "🔮"
@@ -19,6 +21,8 @@ APP_ICON = "🔮"
 SIDEBAR_GROUP_EDA = "EDA"
 SIDEBAR_GROUP_ML = "ML"
 SIDEBAR_GROUP_SETTINGS = "Settings"
+
+DATA_VIEW_PROCESS = 'Process Data'
 
 EDA_VIEW_BASIC = 'Basic Analysis'
 EDA_VIEW_CATEGORICAL = 'Categorical Analysis'
@@ -86,26 +90,6 @@ def load_data(file, nrows=None, sep=','):
     data.rename(lowercase, axis='columns', inplace=True)
     return data
 
-def view_data(df, checkbox_key=None):
-    if df is not None:
-        section_title('Shape')
-        df.shape
-
-        section_title('Head')
-        df[:5]
-
-        if st.checkbox("View All", key=checkbox_key):
-            df
-
-def st_plot(plot):
-    try:
-        st.pyplot(plot.get_figure(), clear_figure=True)
-    except Exception as e:
-        st.error(e)
-
-def section_title(text):
-    st.markdown(f'*{text}*')
-
 
 
 def main():
@@ -114,7 +98,6 @@ def main():
     selected_ml_views = []
     categorical_columns = None
     nummeric_columns = None
-    date_columns = None
     random_state = None
 
     st.beta_set_page_config(
@@ -161,44 +144,15 @@ def main():
         if file is not None:
             try:
                 df = load_data(file, nrows, sep)
-                view_data(df, 'file')
+                viewutil.view_data(df, 'file')
             except Exception as e:
                 st.error(e)
                 st.stop()
     
     if df is not None and len(df):
-        with st.beta_expander("Process Data"):
-            columns = st.multiselect('Columns', list(df.columns), list(df.columns))
-            df = df[columns]
-            
-            cat_col = df.select_dtypes(include=['object']).columns.tolist()
-            num_col = df.select_dtypes(include=np.number).columns.tolist()
-            
-            date_columns = st.multiselect('Date Columns', cat_col)
-            for col in date_columns:
-                try:
-                    df[col] = pd.to_datetime(df[col])
-                except Exception as e:
-                    st.error(f'Column \'{col}\' cannot be converted to date/time')
-
-            if cat_col is not None and date_columns is not None:
-                cat_col = list(set(cat_col) - set(date_columns))
-
-            categorical_columns = st.multiselect('Categorical Columns', columns, cat_col)
-            nummeric_columns = st.multiselect('Numerical Columns', num_col, num_col)
-
-            section_title('Operations')
-
-            if st.checkbox('Drop Null Values'):
-                df.dropna(inplace=True)
-
-            if st.checkbox('Drop Duplicates'):
-                df.drop_duplicates(inplace=True)
-
-            if st.checkbox('Reset Index'):
-                df.reset_index(drop=True, inplace=True)
-
-            view_data(df, "process")
+        
+        with st.beta_expander(DATA_VIEW_PROCESS):
+            df, categorical_columns, nummeric_columns = dataprocessview.generate_date_process_view(df)
 
         with st.sidebar.beta_expander(SIDEBAR_GROUP_EDA, True):
             for view in EDA_VIEWS:
@@ -219,63 +173,63 @@ def main():
 
         if EDA_VIEW_BASIC in selected_eda_views:
             with st.beta_expander(EDA_VIEW_BASIC, True):
-                section_title('Info')
+                viewutil.section_title('Info')
                 buffer = io.StringIO()
                 df.info(buf=buffer)
                 st.text(buffer.getvalue())
 
-                section_title('Data Types')
+                viewutil.section_title('Data Types')
                 dtypes = df.dtypes.rename('Total')
                 dtypes
 
                 if len(df.columns):
-                    section_title('Describe')
+                    viewutil.section_title('Describe')
                     desc = df.describe().T
                     desc
 
-                section_title('Missing Values')
+                viewutil.section_title('Missing Values')
                 isnull = df.isnull().sum().rename('Total')
                 isnull
 
-                section_title('Skew')
+                viewutil.section_title('Skew')
                 skew = df.skew()
                 skew
                 
-                section_title('Covariance')
+                viewutil.section_title('Covariance')
                 cov = df.cov()
                 cov
                 if len(cov):
-                    st_plot(sns.heatmap(cov, annot=True))
+                    viewutil.st_plot(sns.heatmap(cov, annot=True))
 
-                section_title('Correlation')
+                viewutil.section_title('Correlation')
                 corr = df.corr()
                 corr
                 if len(corr):
-                    st_plot(sns.heatmap(corr, annot=True))
+                    viewutil.st_plot(sns.heatmap(corr, annot=True))
         
         if EDA_VIEW_CATEGORICAL in selected_eda_views:
             with st.beta_expander(EDA_VIEW_CATEGORICAL, True):
                 for col in categorical_columns:
-                    section_title(col)
+                    viewutil.section_title(col)
                     col1, col2 = st.beta_columns(2)
                     with col1:
                         count = df[col].value_counts()
                         count
 
                     with col2:
-                        st_plot(sns.countplot(df[col]))
+                        viewutil.st_plot(sns.countplot(df[col]))
 
         if EDA_VIEW_NUMERICAL in selected_eda_views:
             with st.beta_expander(EDA_VIEW_NUMERICAL, True):
                 for col in nummeric_columns:
-                    section_title(col)
+                    viewutil.section_title(col)
                     col1, col2 = st.beta_columns(2)
                     with col1:
                         desc = df[col].describe()
                         desc
                     with col2:
                         try:
-                            st_plot(sns.distplot(df[col]))
+                            viewutil.st_plot(sns.distplot(df[col]))
                         except Exception as e:
                             st.error(e)
 
@@ -290,12 +244,12 @@ def main():
                                 desc
                             
                             with col2:
-                                st_plot(sns.swarmplot(x=df[cat_col], y=df[num_col]))
+                                viewutil.st_plot(sns.swarmplot(x=df[cat_col], y=df[num_col]))
 
                 for cat_col in categorical_columns:
                     for num_col in nummeric_columns:
                         if cat_col != num_col:
-                            st_plot(sns.boxplot(x=df[cat_col], y=df[num_col]))
+                            viewutil.st_plot(sns.boxplot(x=df[cat_col], y=df[num_col]))
 
         if EDA_VIEW_MULTIVARIATE in selected_eda_views:
             with st.beta_expander(EDA_VIEW_MULTIVARIATE, True):
@@ -303,7 +257,7 @@ def main():
                     for y in nummeric_columns:
                         if x != y:
                             for z in categorical_columns:
-                                st_plot(sns.scatterplot(df[x], df[y], df[z]))
+                                viewutil.st_plot(sns.scatterplot(df[x], df[y], df[z]))
 
         if EDA_VIEW_MAP in selected_eda_views:
             with st.beta_expander(EDA_VIEW_MAP, True):
@@ -318,6 +272,6 @@ def main():
 
         if ML_VIEW_SUPERVISED in selected_ml_views:
             with st.beta_expander(ML_VIEW_SUPERVISED, True):
-                mltrain.generate_train_view(df, random_state)
+                mlsupervised.generate_train_view(df, random_state)
 
 main()

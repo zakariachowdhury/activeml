@@ -2,6 +2,10 @@ import streamlit as st
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+
+import viewutil
+import matplotlib.pyplot as plt
 
 LABEL_FEATURE_COLUMNS = 'Feature Columns'
 LABEL_PREDICTION_COLUMN = 'Label Column'
@@ -13,11 +17,13 @@ LABEL_TRAIN_MODEL = 'Train Model'
 ML_TYPE_CLASSIFICATION = 'Classification'
 ML_TYPE_REGRESSION = 'Regression'
 
+ALGO_DECISION_TREE_CLASSIFIER = 'Decision Tree'
 ALGO_LOGISTIC_REGRESSION = 'Logistic Regression'
 ALGO_SVM = 'SVM'
 
 ML_TYPES = {
     ML_TYPE_CLASSIFICATION: [
+        ALGO_DECISION_TREE_CLASSIFIER,
         ALGO_LOGISTIC_REGRESSION,
         ALGO_SVM
     ],
@@ -46,6 +52,8 @@ def generate_train_view(df, random_state):
             model = LogisticRegression(solver='lbfgs', multi_class='auto', random_state=random_state)
         elif algo_type == ALGO_SVM:
             model = SVC(kernel='linear', random_state=random_state)
+        elif algo_type == ALGO_DECISION_TREE_CLASSIFIER:
+            model = DecisionTreeClassifier(criterion='entropy')
 
         if model is not None and ml_type == ML_TYPE_CLASSIFICATION:
             try:
