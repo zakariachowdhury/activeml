@@ -13,7 +13,8 @@ import edamapview
 import edacustomplot
 import mltrain
 
-APP_TITLE = "Exploratory Data Analysis"
+APP_TITLE = "Active ML"
+APP_ICON = "🔮"
 
 SIDEBAR_GROUP_EDA = "EDA"
 SIDEBAR_GROUP_ML = "ML"
@@ -37,14 +38,10 @@ EDA_VIEWS = [
     EDA_VIEW_CUSTOM_PLOT
 ]
 
-ML_VIEW_TRAIN = 'Train Model'
-ML_VIEW_VALIDATION = 'Validation'
-ML_VIEW_PREDICTION = 'Prediction'
+ML_VIEW_SUPERVISED = 'Supervised'
 
 ML_VIEWS = [
-    ML_VIEW_TRAIN,
-    ML_VIEW_VALIDATION,
-    ML_VIEW_PREDICTION
+    ML_VIEW_SUPERVISED
 ]
 
 DATA_SOURCE_FILE = "Local"
@@ -122,11 +119,11 @@ def main():
 
     st.beta_set_page_config(
         page_title=APP_TITLE,
-        page_icon="📊",
+        page_icon=APP_ICON,
         layout="centered",
         initial_sidebar_state="auto")
 
-    st.title(APP_TITLE)
+    st.title(APP_ICON + ' ' + APP_TITLE)
 
     with st.beta_expander("Load Data", True):
         dataset_source = st.selectbox('Data Source', DATA_SOURCES)
@@ -216,6 +213,9 @@ def main():
         with st.sidebar.beta_expander(SIDEBAR_GROUP_SETTINGS, False):
             if st.checkbox("Random State", True):
                 random_state = st.number_input("Random Seed", 42)
+
+        if len(selected_eda_views):
+            st.markdown('## EDA')
 
         if EDA_VIEW_BASIC in selected_eda_views:
             with st.beta_expander(EDA_VIEW_BASIC, True):
@@ -313,8 +313,11 @@ def main():
             with st.beta_expander(EDA_VIEW_CUSTOM_PLOT, True):
                 edacustomplot.generate_plot_view(df)
 
-        if ML_VIEW_TRAIN in selected_ml_views:
-            with st.beta_expander(ML_VIEW_TRAIN, True):
+        if len(selected_ml_views):
+            st.markdown('## Machine Learning')
+
+        if ML_VIEW_SUPERVISED in selected_ml_views:
+            with st.beta_expander(ML_VIEW_SUPERVISED, True):
                 mltrain.generate_train_view(df, random_state)
 
 main()
