@@ -7,30 +7,44 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 import sys
-sys.path = list(set(['analysis', 'utils'] + sys.path))
+sys.path = list(set(['eda', 'ml', 'utils'] + sys.path))
 
-import mapview
-import customplot
-
+import edamapview
+import edacustomplot
+import mltrain
 
 APP_TITLE = "Exploratory Data Analysis"
 
-GROUP_BASIC = 'Basic Analysis'
-GROUP_CATEGORICAL = 'Categorical Analysis'
-GROUP_NUMERICAL = 'Numerical Analysis'
-GROUP_BIVARIATE = 'Bivariate Analysis'
-GROUP_MULTIVARIATE = 'Multivariate Analysis'
-GROUP_MAP = 'Map View'
-GROUP_CUSTOM_PLOT = 'Custom Plot'
+SIDEBAR_GROUP_EDA = "EDA"
+SIDEBAR_GROUP_ML = "ML"
+SIDEBAR_GROUP_SETTINGS = "Settings"
 
-ANALYSIS_GROUP = [
-    GROUP_BASIC,
-    GROUP_CATEGORICAL,
-    GROUP_NUMERICAL,
-    GROUP_BIVARIATE,
-    GROUP_MULTIVARIATE,
-    GROUP_MAP,
-    GROUP_CUSTOM_PLOT
+EDA_VIEW_BASIC = 'Basic Analysis'
+EDA_VIEW_CATEGORICAL = 'Categorical Analysis'
+EDA_VIEW_NUMERICAL = 'Numerical Analysis'
+EDA_VIEW_BIVARIATE = 'Bivariate Analysis'
+EDA_VIEW_MULTIVARIATE = 'Multivariate Analysis'
+EDA_VIEW_MAP = 'Map View'
+EDA_VIEW_CUSTOM_PLOT = 'Custom Plot'
+
+EDA_VIEWS = [
+    EDA_VIEW_BASIC,
+    EDA_VIEW_CATEGORICAL,
+    EDA_VIEW_NUMERICAL,
+    EDA_VIEW_BIVARIATE,
+    EDA_VIEW_MULTIVARIATE,
+    EDA_VIEW_MAP,
+    EDA_VIEW_CUSTOM_PLOT
+]
+
+ML_VIEW_TRAIN = 'Train Model'
+ML_VIEW_VALIDATION = 'Validation'
+ML_VIEW_PREDICTION = 'Prediction'
+
+ML_VIEWS = [
+    ML_VIEW_TRAIN,
+    ML_VIEW_VALIDATION,
+    ML_VIEW_PREDICTION
 ]
 
 DATA_SOURCE_FILE = "Local"
@@ -99,10 +113,12 @@ def section_title(text):
 
 def main():
     df = None
-    selected_analysis_group = []
+    selected_eda_views = []
+    selected_ml_views = []
     categorical_columns = None
     nummeric_columns = None
     date_columns = None
+    random_state = None
 
     st.beta_set_page_config(
         page_title=APP_TITLE,
@@ -117,6 +133,7 @@ def main():
         
         file = None
         nrows = DATA_MAX_N_ROWS
+        sep = ','
 
         if dataset_source == DATA_SOURCE_DEMO:
             dataset_name = st.selectbox('Demo Dataset', list(DEMO_DATASETS.keys()))
@@ -136,6 +153,8 @@ def main():
 
         if dataset_source == DATA_SOURCE_FILE:
             file = st.file_uploader('Upload File', type=['csv', 'tsv', 'txt'])
+            if file is not None:
+                file.seek(0)
 
         if dataset_source == DATA_SOURCE_URL:
             file = st.text_input('Dataset URL (csv)')
@@ -184,13 +203,22 @@ def main():
 
             view_data(df, "process")
 
-        with st.sidebar.beta_expander("Analysis", True):
-            for group in ANALYSIS_GROUP:
-                if st.checkbox(group):
-                    selected_analysis_group.append(group)
+        with st.sidebar.beta_expander(SIDEBAR_GROUP_EDA, True):
+            for view in EDA_VIEWS:
+                if st.checkbox(view):
+                    selected_eda_views.append(view)
 
-        if GROUP_BASIC in selected_analysis_group:
-            with st.beta_expander(GROUP_BASIC, True):
+        with st.sidebar.beta_expander(SIDEBAR_GROUP_ML, False):
+            for view in ML_VIEWS:
+                if st.checkbox(view):
+                    selected_ml_views.append(view)
+
+        with st.sidebar.beta_expander(SIDEBAR_GROUP_SETTINGS, False):
+            if st.checkbox("Random State", True):
+                random_state = st.number_input("Random Seed", 42)
+
+        if EDA_VIEW_BASIC in selected_eda_views:
+            with st.beta_expander(EDA_VIEW_BASIC, True):
                 section_title('Info')
                 buffer = io.StringIO()
                 df.info(buf=buffer)
@@ -225,8 +253,8 @@ def main():
                 if len(corr):
                     st_plot(sns.heatmap(corr, annot=True))
         
-        if GROUP_CATEGORICAL in selected_analysis_group:
-            with st.beta_expander(GROUP_CATEGORICAL, True):
+        if EDA_VIEW_CATEGORICAL in selected_eda_views:
+            with st.beta_expander(EDA_VIEW_CATEGORICAL, True):
                 for col in categorical_columns:
                     section_title(col)
                     col1, col2 = st.beta_columns(2)
@@ -237,8 +265,8 @@ def main():
                     with col2:
                         st_plot(sns.countplot(df[col]))
 
-        if GROUP_NUMERICAL in selected_analysis_group:
-            with st.beta_expander(GROUP_NUMERICAL, True):
+        if EDA_VIEW_NUMERICAL in selected_eda_views:
+            with st.beta_expander(EDA_VIEW_NUMERICAL, True):
                 for col in nummeric_columns:
                     section_title(col)
                     col1, col2 = st.beta_columns(2)
@@ -251,8 +279,8 @@ def main():
                         except Exception as e:
                             st.error(e)
 
-        if GROUP_BIVARIATE in selected_analysis_group:
-            with st.beta_expander(GROUP_BIVARIATE, True):
+        if EDA_VIEW_BIVARIATE in selected_eda_views:
+            with st.beta_expander(EDA_VIEW_BIVARIATE, True):
                 for cat_col in categorical_columns:
                     for num_col in nummeric_columns:
                         if cat_col != num_col:
@@ -269,20 +297,24 @@ def main():
                         if cat_col != num_col:
                             st_plot(sns.boxplot(x=df[cat_col], y=df[num_col]))
 
-        if GROUP_MULTIVARIATE in selected_analysis_group:
-            with st.beta_expander(GROUP_MULTIVARIATE, True):
+        if EDA_VIEW_MULTIVARIATE in selected_eda_views:
+            with st.beta_expander(EDA_VIEW_MULTIVARIATE, True):
                 for x in nummeric_columns:
                     for y in nummeric_columns:
                         if x != y:
                             for z in categorical_columns:
                                 st_plot(sns.scatterplot(df[x], df[y], df[z]))
 
-        if GROUP_MAP in selected_analysis_group:
-            with st.beta_expander(GROUP_MAP, True):
-                mapview.generate_map_view(df, nummeric_columns)
+        if EDA_VIEW_MAP in selected_eda_views:
+            with st.beta_expander(EDA_VIEW_MAP, True):
+                edamapview.generate_map_view(df, nummeric_columns)
 
-        if GROUP_CUSTOM_PLOT in selected_analysis_group:
-            with st.beta_expander(GROUP_CUSTOM_PLOT, True):
-                customplot.generate_plot_view(df)
+        if EDA_VIEW_CUSTOM_PLOT in selected_eda_views:
+            with st.beta_expander(EDA_VIEW_CUSTOM_PLOT, True):
+                edacustomplot.generate_plot_view(df)
+
+        if ML_VIEW_TRAIN in selected_ml_views:
+            with st.beta_expander(ML_VIEW_TRAIN, True):
+                mltrain.generate_train_view(df, random_state)
 
 main()
