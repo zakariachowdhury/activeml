@@ -14,6 +14,7 @@ import edamapview
 import edacustomplot
 import mlsupervised
 import viewutil
+import commonutil
 
 APP_TITLE = "ActiveML"
 APP_ICON = "🔮"
@@ -154,6 +155,19 @@ def main():
         with st.beta_expander(DATA_VIEW_PROCESS):
             df, categorical_columns, nummeric_columns = dataprocessview.generate_date_process_view(df)
 
+        if len(categorical_columns) == 0:
+            EDA_VIEWS.remove(EDA_VIEW_CATEGORICAL)
+
+        if len(nummeric_columns) == 0:
+            EDA_VIEWS.remove(EDA_VIEW_NUMERICAL)
+        
+        if len(categorical_columns) == 0 or len(nummeric_columns) == 0:
+            EDA_VIEWS.remove(EDA_VIEW_BIVARIATE)
+            EDA_VIEWS.remove(EDA_VIEW_MULTIVARIATE)
+
+        if commonutil.find_index_from_list(df.columns, 'lat') == -1 or commonutil.find_index_from_list(df.columns, 'lat') == -1:
+            EDA_VIEWS.remove(EDA_VIEW_MAP)
+
         with st.sidebar.beta_expander(SIDEBAR_GROUP_EDA):
             for view in EDA_VIEWS:
                 if st.checkbox(view):
@@ -269,7 +283,7 @@ def main():
 
         if EDA_VIEW_MAP in selected_eda_views:
             with st.beta_expander(EDA_VIEW_MAP, True):
-                edamapview.generate_map_view(df, nummeric_columns)
+                edamapview.generate_map_view(df)
 
         if EDA_VIEW_CUSTOM_PLOT in selected_eda_views:
             with st.beta_expander(EDA_VIEW_CUSTOM_PLOT, True):

@@ -9,18 +9,17 @@ LABEL_PITCH = 'Pitch'
 LABEL_STYLE = 'Style'
 LABEL_RADIUS = 'Radius'
 
-def find_column_index(columns, match):
-    matches = [i for i, col in enumerate(columns) if match in col]
-    return matches[0] if len(matches) else -1
+import commonutil
 
-def generate_map_view(df, columns):
+def generate_map_view(df):
     lat_col = lon_col = None
+    columns = list(df.columns)
     col1, col2, col3 = st.beta_columns(3)
     with col1:
-        lat_col = st.selectbox(LABEL_LATITUDE_COLUMN, [''] + columns, find_column_index(columns, 'lat') + 1)
+        lat_col = st.selectbox(LABEL_LATITUDE_COLUMN, [''] + columns, commonutil.find_index_from_list(columns, 'lat') + 1)
         zoom = st.number_input(LABEL_ZOOM, 1, 20, 11)
     with col2:
-        lon_col = st.selectbox(LABEL_LONGITUDE_COLUMN, [''] + columns, find_column_index(columns, 'lon') + 1)
+        lon_col = st.selectbox(LABEL_LONGITUDE_COLUMN, [''] + columns, commonutil.find_index_from_list(columns, 'lon') + 1)
         pitch = st.number_input(LABEL_PITCH, 0, 100, 50)
     with col3:
         map_style = st.selectbox(LABEL_STYLE, maputil.get_mapbox_styles())
