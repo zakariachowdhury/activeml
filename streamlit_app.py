@@ -209,7 +209,8 @@ def main():
         
         if EDA_VIEW_CATEGORICAL in selected_eda_views:
             with st.beta_expander(EDA_VIEW_CATEGORICAL, True):
-                for col in categorical_columns:
+                selected_columns = st.multiselect('Columns', categorical_columns, key='cat_col')
+                for col in selected_columns:
                     viewutil.section_title(col)
                     col1, col2 = st.beta_columns(2)
                     with col1:
@@ -221,7 +222,8 @@ def main():
 
         if EDA_VIEW_NUMERICAL in selected_eda_views:
             with st.beta_expander(EDA_VIEW_NUMERICAL, True):
-                for col in nummeric_columns:
+                selected_columns = st.multiselect('Columns', nummeric_columns, key='num_col')
+                for col in selected_columns:
                     viewutil.section_title(col)
                     col1, col2 = st.beta_columns(2)
                     with col1:
@@ -235,8 +237,10 @@ def main():
 
         if EDA_VIEW_BIVARIATE in selected_eda_views:
             with st.beta_expander(EDA_VIEW_BIVARIATE, True):
-                for cat_col in categorical_columns:
-                    for num_col in nummeric_columns:
+                selected_cat_columns = st.multiselect('X', categorical_columns, key='bi_cat_col')
+                selected_num_columns = st.multiselect('Y', nummeric_columns, key='bi_num_col')
+                for cat_col in selected_cat_columns:
+                    for num_col in selected_num_columns:
                         if cat_col != num_col:
                             col1, col2 = st.beta_columns(2)
                             with col1:
@@ -246,17 +250,21 @@ def main():
                             with col2:
                                 viewutil.st_plot(sns.swarmplot(x=df[cat_col], y=df[num_col]))
 
-                for cat_col in categorical_columns:
-                    for num_col in nummeric_columns:
+                for cat_col in selected_cat_columns:
+                    for num_col in selected_num_columns:
                         if cat_col != num_col:
                             viewutil.st_plot(sns.boxplot(x=df[cat_col], y=df[num_col]))
 
         if EDA_VIEW_MULTIVARIATE in selected_eda_views:
             with st.beta_expander(EDA_VIEW_MULTIVARIATE, True):
-                for x in nummeric_columns:
-                    for y in nummeric_columns:
+                selected_x_columns = st.multiselect('X', nummeric_columns, key='mul_num_col')
+                selected_y_columns = st.multiselect('Y', nummeric_columns, key='mul_num_col')
+                selected_hue_columns = st.multiselect('Hue', categorical_columns, key='mul_cat_col')
+                
+                for x in selected_x_columns:
+                    for y in selected_y_columns:
                         if x != y:
-                            for z in categorical_columns:
+                            for z in selected_hue_columns:
                                 viewutil.st_plot(sns.scatterplot(df[x], df[y], df[z]))
 
         if EDA_VIEW_MAP in selected_eda_views:
