@@ -19,3 +19,6 @@ def st_plot(plot):
         st.pyplot(plot.get_figure(), clear_figure=True)
     except Exception as e:
         st.error(e)
+
+def st_round(x, precision=3):
+    st.write(round(x, precision))

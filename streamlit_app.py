@@ -15,7 +15,7 @@ import edacustomplot
 import mlsupervised
 import viewutil
 
-APP_TITLE = "Active ML"
+APP_TITLE = "ActiveML"
 APP_ICON = "🔮"
 
 SIDEBAR_GROUP_EDA = "EDA"
@@ -154,7 +154,7 @@ def main():
         with st.beta_expander(DATA_VIEW_PROCESS):
             df, categorical_columns, nummeric_columns = dataprocessview.generate_date_process_view(df)
 
-        with st.sidebar.beta_expander(SIDEBAR_GROUP_EDA, True):
+        with st.sidebar.beta_expander(SIDEBAR_GROUP_EDA):
             for view in EDA_VIEWS:
                 if st.checkbox(view):
                     selected_eda_views.append(view)
@@ -172,7 +172,7 @@ def main():
             st.markdown('## EDA')
 
         if EDA_VIEW_BASIC in selected_eda_views:
-            with st.beta_expander(EDA_VIEW_BASIC, True):
+            with st.beta_expander(EDA_VIEW_BASIC):
                 viewutil.section_title('Info')
                 buffer = io.StringIO()
                 df.info(buf=buffer)
