@@ -55,7 +55,7 @@ def generate_train_view(df, random_state):
     prediction_column = st.selectbox(LABEL_PREDICTION_COLUMN, list(set(columns) - set(feature_columns)), 0)
     train_size = st.slider(LABEL_TRAIN_SIZE, min_value=5, max_value=95, value=70, step=5)
 
-    if st.checkbox(LABEL_TRAIN_MODEL):
+    if len(feature_columns) and len(prediction_column) and st.checkbox(LABEL_TRAIN_MODEL):
         model = None
         X_train, X_test, y_train, y_test = train_test_split(df[feature_columns], df[prediction_column], train_size = train_size / 100, random_state = random_state)
         if algo_type == ALGO_LINEAR_REGRESSION:

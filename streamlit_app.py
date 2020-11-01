@@ -186,7 +186,7 @@ def main():
             st.markdown('## EDA')
 
         if EDA_VIEW_BASIC in selected_eda_views:
-            with st.beta_expander(EDA_VIEW_BASIC):
+            with st.beta_expander(EDA_VIEW_BASIC, True):
                 viewutil.section_title('Info')
                 buffer = io.StringIO()
                 df.info(buf=buffer)
@@ -212,13 +212,13 @@ def main():
                 viewutil.section_title('Covariance')
                 cov = df.cov()
                 cov
-                if len(cov):
+                if len(cov) and st.checkbox('Hitmap', key='cov_hitmap'):
                     viewutil.st_plot(sns.heatmap(cov, annot=True))
 
                 viewutil.section_title('Correlation')
                 corr = df.corr()
                 corr
-                if len(corr):
+                if len(corr) and st.checkbox('Hitmap', key='corr_hitmap'):
                     viewutil.st_plot(sns.heatmap(corr, annot=True))
         
         if EDA_VIEW_CATEGORICAL in selected_eda_views:
