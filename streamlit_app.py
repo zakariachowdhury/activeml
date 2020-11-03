@@ -183,7 +183,7 @@ def main():
                 random_state = st.number_input("Random Seed", 42)
 
         if len(selected_eda_views):
-            st.markdown('## EDA')
+            st.markdown('## Exploratory Data Analysis')
 
         if EDA_VIEW_BASIC in selected_eda_views:
             with st.beta_expander(EDA_VIEW_BASIC, True):

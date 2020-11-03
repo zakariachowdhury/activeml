@@ -16,7 +16,7 @@ LABEL_LEARNING_TYPE = 'Learning Type'
 LABEL_ALGORITHM = 'Algorithm'
 LABEL_TRAIN_SIZE = 'Train Size'
 LABEL_TRAIN_MODEL = 'Train Model'
-LABEL_EVALUATION_METRICS = 'Evaluation Metrics'
+LABEL_EVALUATION_METRICS = 'Evaluate'
 LABEL_R2_SCORE = 'R^2 Score'
 LABEL_CONFUSION_MATRIX = 'Confusion Matrix'
 LABEL_COEFFICIENTS = 'Coefficients'
@@ -76,24 +76,25 @@ def generate_train_view(df, random_state):
                 st.info('Accuracy: **' + str(round(score * 100, 2)) + '%**')
                 
                 if st.checkbox(LABEL_EVALUATION_METRICS):
-                    viewutil.section_title(LABEL_R2_SCORE)
-                    viewutil.st_round(r2_score(y_test, y_pred))
+                    if ml_type == ML_TYPE_REGRESSION:
+                        viewutil.section_title(LABEL_R2_SCORE)
+                        viewutil.st_round(r2_score(y_test, y_pred))
 
-                    if ml_type == ML_TYPE_CLASSIFICATION:
-                        viewutil.section_title()
-                        st.write(pd.DataFrame(confusion_matrix(y_test, y_pred)))
-                    
-                    if algo_type not in [ALGO_DECISION_TREE_CLASSIFIER]:
                         viewutil.section_title(LABEL_INTERCEPT)
                         viewutil.st_round(model.intercept_)
 
                         viewutil.section_title(LABEL_COEFFICIENTS)
                         st.write(model.coef_)
 
-                    plt.scatter(X_test, y_test, color="red")
-                    plt.plot(X_test, y_pred, color="green")
-                    plt.title("Test Data")
-                    st.pyplot(plt.figure(1))
+                        if X_test.shape[1] == 1 and len(X_test) == len(y_test):
+                            plt.scatter(X_test, y_test, color="red")
+                            plt.plot(X_test, y_pred, color="green")
+                            plt.title("Test Data")
+                            st.pyplot(plt.figure(1))
+
+                    if ml_type == ML_TYPE_CLASSIFICATION:
+                        viewutil.section_title(LABEL_CONFUSION_MATRIX)
+                        st.write(pd.DataFrame(confusion_matrix(y_test, y_pred)))                    
 
             except Exception as e:
                 st.error(e)
